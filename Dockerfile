@@ -1,18 +1,13 @@
 FROM keymetrics/pm2:14-alpine
 
-ENV TIME_ZONE=UTC
+ENV TZ=UTC
+RUN apk add tzdata
 
-# Set the timezone in docker
-RUN apk --update add tzdata \\
-   && cp /usr/share/zoneinfo/UTC /etc/localtime \\
-   && echo "UTC" > /etc/timezone \\
-   && apk del tzdata
+COPY src src/
+COPY package.json .
+COPY tsconfig.json .
+COPY ecosystem.config.js .
 
-ADD . /
-
-RUN rm -rf ./node_modules ./build &&\
-      npm ci &&\
-      npm run build &&\
-      npm prune --production
+RUN npm install --production && npm ci && npm run build && npm prune --production
 
 CMD ["pm2-runtime", "start", "ecosystem.config.js"]
