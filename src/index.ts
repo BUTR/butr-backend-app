@@ -1,5 +1,5 @@
 import updateChecker from "./routes/update-checker";
-import shields from "./routes/shields";
+import versions from "./routes/versions";
 import downloads from "./routes/downloads";
 import { IApplicationError, IApplicationErrorMessage } from "./types";
 import { NextFunction, Request, Response } from "express-serve-static-core";
@@ -14,7 +14,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use("/update-checker", updateChecker);
-app.use("/shields", shields);
+app.use("/versions", versions);
 app.use("/downloads", downloads);
 
 
