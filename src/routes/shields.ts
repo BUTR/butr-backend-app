@@ -4,8 +4,8 @@ import { ParamsDictionary } from "express-serve-static-core";
 import express = require("express");
 
 interface IRequestQuery {
-    gameId: number;
-    modId: number;
+    gameId: string;
+    modId: string;
 }
 interface IRequestBody {
 
@@ -27,26 +27,33 @@ router.get("/",
         res.type("application/json");
 
         if (!apiKey) {
-            res.send({ schemaVersion: 1, label: "Version", message: "Invalid 'NEXUSMODS_APIKEY'!", color: "red" });
+            res.send(errorMsg("Invalid 'NEXUSMODS_APIKEY'!"));
         }
         if (!req.query.gameId || !req.query.modId) {
-            res.send({ schemaVersion: 1, label: "Version", message: "Invalid gameId or modId!", color: "red" });
+            res.send(errorMsg("Invalid 'gameId' or 'modId'!"));
         }
 
         const response = await fetch(
             `${apiUrl}/v1/games/${req.query.gameId}/mods/${req.query.modId}.json`,
-            {
-                method: "GET",
-                headers: { 'apikey': apiKey, 'Content-Type': "application/json" },
+            { method: "GET", headers: { 'apikey': apiKey, 'Content-Type': "application/json" } })
+            .then(resp => resp.json())
+            .then(json => {
+                if (!json.version) {
+                    return errorMsg("Invalid 'version' from NexusMods!");
+                }
+                return successMsg(json.version);
             })
-            .then(resp => resp.json());
+            .catch(err => errorMsg("Error while getting download count!"));
 
-        if (!response.version) {
-            res.send({ schemaVersion: 1, label: "Version", message: "Invalid 'version' from NexusMods!", color: "red" });
-        }
-
-        res.send({ schemaVersion: 1, label: "Version", message: response.version, color: "yellow" });
+        res.send(response);
     }
 );
+
+function successMsg(message: string): IResponseBody {
+    return { schemaVersion: 1, label: "Version", message: message, color: "yellow" }
+}
+function errorMsg(message: string): IResponseBody {
+    return { schemaVersion: 1, label: "Version", message: message, color: "red" }
+}
 
 export default router;

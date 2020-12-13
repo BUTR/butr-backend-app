@@ -73,23 +73,23 @@ async function nexusmods(modData: IRequestBodyModData): Promise<IResponseBodyMod
     if (result.length < 6) {
         return null;
     }
-
     const [, , , gameDomain, , modId] = result;
 
     const response = await fetch(
-         `${apiUrl}/v1/games/${gameDomain}/mods/${modId}.json`,
-        {
-            method: "GET",
-            headers: { 'apikey': apiKey, 'Content-Type': "application/json" },
+        `${apiUrl}/v1/games/${gameDomain}/mods/${modId}.json`,
+        { method: "GET", headers: { 'apikey': apiKey, 'Content-Type': "application/json" } })
+        .then(resp => resp.json())
+        .then(json => {
+           if (!json.version) {
+               return null;
+           }
+           return compareVersions(modData.version, json.version)
+           ? { id: modData.id, newVersion: json.version }
+           : null;
         })
-        .then(resp => resp.json());
+        .catch(err => null);
 
-    const version = response["version"];
-    if (!version) {
-        return null;
-    }
-
-    return compareVersions(modData.version, version) ? { id: modData.id, newVersion: version } : null;
+    return response;
 }
 
 function compareVersions(originalVersion: string, newVersion: string): boolean {
