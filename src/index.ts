@@ -3,8 +3,8 @@ import shields from "./routes/shields";
 import downloads from "./routes/downloads";
 import { IApplicationError, IApplicationErrorMessage } from "./types";
 import { NextFunction, Request, Response } from "express-serve-static-core";
-
 import debug from "debug";
+
 import express = require("express");
 import bodyParser = require("body-parser");
 
@@ -27,7 +27,7 @@ app.use((err: IApplicationError, _req: Request, res: Response<IApplicationErrorM
 });
 
 
-app.set("port", process.env["PORT"] || 3000);
+app.set("port", process.env.PORT || 3000);
 
 const server = app.listen(app.get("port"), () => {
     debug(`Express server listening on port ${server.address().port}`);

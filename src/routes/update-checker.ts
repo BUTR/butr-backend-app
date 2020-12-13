@@ -1,6 +1,7 @@
 import fetch from "node-fetch";
 import { ParamsDictionary } from "express-serve-static-core";
 import { IApplicationErrorMessage } from "../types";
+import cache from 'memory-cache';
 
 import express = require("express");
 
@@ -75,21 +76,28 @@ async function nexusmods(modData: IRequestBodyModData): Promise<IResponseBodyMod
     }
     const [, , , gameDomain, , modId] = result;
 
-    const response = await fetch(
-        `${apiUrl}/v1/games/${gameDomain}/mods/${modId}.json`,
-        { method: "GET", headers: { 'apikey': apiKey, 'Content-Type': "application/json" } })
-        .then(resp => resp.json())
-        .then(json => {
-           if (!json.version) {
-               return null;
-           }
-           return compareVersions(modData.version, json.version)
-           ? { id: modData.id, newVersion: json.version }
-           : null;
-        })
-        .catch(err => null);
 
-    return response;
+    const key = `update-checker:${gameDomain}:${modId}`;
+    let entry = cache.get(key);
+    if (entry === null) {
+        entry = await fetch(
+            `${apiUrl}/v1/games/${gameDomain}/mods/${modId}.json`,
+            { method: "GET", headers: { 'apikey': apiKey, 'Content-Type': "application/json" } })
+            .then(resp => resp.json())
+            .then(json => {
+                if (!json.version) {
+                    return null;
+                }
+                return compareVersions(modData.version, json.version)
+                ? { id: modData.id, newVersion: json.version }
+                : null;
+            })
+            .catch(err => null);
+
+        cache.put(key, entry, 60000); 
+    }
+
+    return entry;
 }
 
 function compareVersions(originalVersion: string, newVersion: string): boolean {

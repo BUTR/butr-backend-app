@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
 import { ParamsDictionary } from "express-serve-static-core";
+import cache from 'memory-cache';
 
 import express = require("express");
 
@@ -20,6 +21,7 @@ interface IResponseBody {
 const apiUrl = "https://api.nexusmods.com/";
 const apiKey = process.env["NEXUSMODS_APIKEY"];
 
+
 const router = express.Router();
 
 router.get("/",
@@ -33,19 +35,25 @@ router.get("/",
             res.send(errorMsg("Invalid 'gameId' or 'modId'!"));
         }
 
-        const response = await fetch(
-            `${apiUrl}/v1/games/${req.query.gameId}/mods/${req.query.modId}.json`,
-            { method: "GET", headers: { 'apikey': apiKey, 'Content-Type': "application/json" } })
-            .then(resp => resp.json())
-            .then(json => {
-                if (!json.version) {
-                    return errorMsg("Invalid 'version' from NexusMods!");
-                }
-                return successMsg(json.version);
-            })
-            .catch(err => errorMsg("Error while getting download count!"));
+        const key = `shields:${req.query.gameId}:${req.query.modId}`;
+        let entry: IResponseBody = cache.get(key);
+        if (entry === null) {
+            entry = await fetch(
+                `${apiUrl}/v1/games/${req.query.gameId}/mods/${req.query.modId}.json`,
+                { method: "GET", headers: { 'apikey': apiKey, 'Content-Type': "application/json" } })
+                .then(resp => resp.json())
+                .then(json => {
+                    if (!json.version) {
+                        return errorMsg("Invalid 'version' from NexusMods!");
+                    }
+                    return successMsg(json.version);
+                })
+                .catch(err => errorMsg("Error while getting download count!"));
 
-        res.send(response);
+            cache.put(key, entry, 60000); 
+        }
+
+        res.send(entry);
     }
 );
 
